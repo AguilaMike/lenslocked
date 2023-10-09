@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	// w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	fmt.Fprintf(w, "<h1>Welcome to my awesome site 2!</h1>")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	// w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	fmt.Fprintf(w, "<h1>Welcome to my awesome site!</h1>")
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
@@ -37,38 +39,14 @@ func faqHandler(w http.ResponseWriter, r *http.Request) {
 `)
 }
 
-// func pathHandler(w http.ResponseWriter, r *http.Request) {
-// 	switch r.URL.Path {
-// 	case "/":
-// 		homeHandler(w, r)
-// 	case "/contact":
-// 		contactHandler(w, r)
-// 	default:
-// 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
-// 	}
-// }
-
-type Router struct{}
-
-func (router Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/":
-		homeHandler(w, r)
-	case "/contact":
-		contactHandler(w, r)
-	case "/faq":
-		faqHandler(w, r)
-	default:
-		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
-	}
-}
-
 func main() {
-	var router Router
-	// http.HandleFunc("/", homeHandler)
-	// http.HandleFunc("/contact", contactHandler)
-	// http.HandleFunc("/", pathHandler)
+	r := chi.NewRouter()
+	r.Get("/", homeHandler)
+	r.Get("/contact", contactHandler)
+	r.Get("/faq", faqHandler)
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
+	})
 	fmt.Println("Starting the server on :8080...")
-	// http.ListenAndServe(":8080", nil)
-	http.ListenAndServe(":8080", router)
+	http.ListenAndServe(":8080", r)
 }
