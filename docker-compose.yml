@@ -1,0 +1,23 @@
+version: "3.8"
+services:
+  lenslocked-app-dev:
+    container_name: lenslocked-app-dev
+    build:
+      context: .
+      target: dev
+    env_file:
+      - .env
+    volumes:
+      - .:/app:rw,delegated
+    networks:
+      - lenslocked
+    ports:
+      - ${PORT_APP}:${PORT_GO}
+      - ${PORT_DELVE}:${PORT_DELVE}
+    environment:
+      - PORT_APP=${PORT_APP}
+      - PORT_DELVE=${PORT_DELVE}
+
+networks:
+  lenslocked:
+    name: lenslocked
