@@ -29,5 +29,5 @@ func FAQ(r *chi.Mux) {
 		},
 	}
 
-	RegisterGetControllerWithTemplateFs(r, questions, "/faq", "layout-page.gohtml", "faq.gohtml")
+	registerGetControllerWithTemplateFs(r, questions, "/faq", joinPath("layout", "layout.gohtml"), joinPath("pages", "faq.gohtml"))
 }

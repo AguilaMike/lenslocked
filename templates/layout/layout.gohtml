@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <!-- Note: The . passes all of our data into the "page" template so it also has access to it -->
+    {{template "page" .}}
+
+    <p>Copyright David Hernández 2023</p>
+  </body>
+</html>

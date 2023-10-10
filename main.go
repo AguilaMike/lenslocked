@@ -11,12 +11,8 @@ import (
 func main() {
 	r := chi.NewRouter()
 
-	// controllers.RegisterGetControllerWithTemplate(r, "/", "templates", "home.gohtml", nil)
-	// controllers.RegisterGetControllerWithTemplate(r, "/contact", "templates", "contact.gohtml", nil)
-	// controllers.RegisterGetControllerWithTemplate(r, "/faq", "templates", "faq.gohtml", nil)
-
-	controllers.RegisterGetControllerWithTemplateFs(r, nil, "/", "layout-page.gohtml", "home-page.gohtml")
-	controllers.RegisterGetControllerWithTemplateFs(r, nil, "/contact", "layout-page.gohtml", "contact-page.gohtml")
+	controllers.Home(r)
+	controllers.Contact(r)
 	controllers.FAQ(r)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
