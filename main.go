@@ -11,25 +11,11 @@ import (
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tplPath := filepath.Join("templates", "home.gohtml")
-	tpl, err := template.ParseFiles(tplPath)
-	if err != nil {
-		log.Printf("parsing template: %v", err)
-		http.Error(w, "There was an error parsing the template.", http.StatusInternalServerError)
-		return
-	}
-	err = tpl.Execute(w, nil)
-	if err != nil {
-		log.Printf("executing template: %v", err)
-		http.Error(w, "There was an error executing the template.", http.StatusInternalServerError)
-		return
-	}
+	executeTemplate(w, filepath.Join("templates", "home.gohtml"), nil)
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, "<h1>Contact page</h1><p>to get in touch, please send an email to <a href=\"mailto:contact@test.com\">contact@test.com</a>.</p>")
+	executeTemplate(w, filepath.Join("templates", "contact.gohtml"), nil)
 }
 
 func faqHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,4 +49,20 @@ func main() {
 	})
 	fmt.Println("Starting the server on :8080...")
 	http.ListenAndServe(":8080", r)
+}
+
+func executeTemplate(w http.ResponseWriter, filepath string, data any) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tpl, err := template.ParseFiles(filepath)
+	if err != nil {
+		log.Printf("processing template: %v", err)
+		http.Error(w, "There was an error processing the template.", http.StatusInternalServerError)
+		return
+	}
+	err = tpl.Execute(w, data)
+	if err != nil {
+		log.Printf("executing template: %v", err)
+		http.Error(w, "There was an error executing the template.", http.StatusInternalServerError)
+		return
+	}
 }
