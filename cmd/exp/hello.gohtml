@@ -1,2 +1,11 @@
 <h1>Hello, {{.Name}}</h1>
+<h1>Bio, {{.Bio}}</h1>
 <p>You are {{.Age}} years old.</p>
+
+<script>
+  const user = {
+    "name": {{.Name}},
+    "bio": {{.Bio}}
+  };
+  console.log(user);
+</script>
