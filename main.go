@@ -15,8 +15,8 @@ func main() {
 	// controllers.RegisterGetControllerWithTemplate(r, "/contact", "templates", "contact.gohtml", nil)
 	// controllers.RegisterGetControllerWithTemplate(r, "/faq", "templates", "faq.gohtml", nil)
 
-	controllers.RegisterGetControllerWithTemplateFs(r, "/", "home.gohtml", nil)
-	controllers.RegisterGetControllerWithTemplateFs(r, "/contact", "contact.gohtml", nil)
+	controllers.RegisterGetControllerWithTemplateFs(r, nil, "/", "layout-page.gohtml", "home-page.gohtml")
+	controllers.RegisterGetControllerWithTemplateFs(r, nil, "/contact", "layout-page.gohtml", "contact-page.gohtml")
 	controllers.FAQ(r)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)

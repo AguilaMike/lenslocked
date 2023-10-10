@@ -13,8 +13,8 @@ type Static struct {
 	Template views.Template
 }
 
-func RegisterGetControllerWithTemplateFs(r *chi.Mux, path, templateFile string, data interface{}) {
-	tpl := views.Must(views.ParseFS(templates.FS, templateFile))
+func RegisterGetControllerWithTemplateFs(r *chi.Mux, data interface{}, path string, templateFile ...string) {
+	tpl := views.Must(views.ParseFS(templates.FS, templateFile...))
 	r.Get(path, staticHandler(tpl, data))
 }
 
