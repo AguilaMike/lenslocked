@@ -11,7 +11,7 @@ bin = "./tmp/main"
 # Customize binary.
 full_bin = "dlv exec --accept-multiclient --log --headless --continue --listen :$PORT_DELVE --api-version 2 ./tmp/main"
 # Watch these filename extensions.
-include_ext = ["go", "tpl", "tmpl", "html"]
+include_ext = ["go", "tpl", "tmpl", "html", "gohtml"]
 # Ignore these filename extensions or directories.
 exclude_dir = ["assets", "tmp", "vendor", "testdata"]
 # Watch these directories if you specified.
