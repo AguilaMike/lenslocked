@@ -11,11 +11,11 @@ import (
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	executeTemplate(w, filepath.Join("templates", "home.gohtml"), nil)
+	executeTemplate(w, filepath.Join("templates", "home.gohtml"))
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
-	executeTemplate(w, filepath.Join("templates", "contact.gohtml"), nil)
+	executeTemplate(w, filepath.Join("templates", "contact.gohtml"))
 }
 
 func faqHandler(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +51,10 @@ func main() {
 	http.ListenAndServe(":8080", r)
 }
 
-func executeTemplate(w http.ResponseWriter, filepath string, data any) {
+func executeTemplate(w http.ResponseWriter, filepath string) {
+	executeTemplateData(w, filepath, nil)
+}
+func executeTemplateData(w http.ResponseWriter, filepath string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	tpl, err := template.ParseFiles(filepath)
 	if err != nil {
