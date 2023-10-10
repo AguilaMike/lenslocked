@@ -13,14 +13,11 @@ type Static struct {
 }
 
 func RegisterGetControllerWithTemplate(r *chi.Mux, path, templateFolder, templateFile string, data interface{}) {
-	tpl, err := views.Parse(filepath.Join(templateFolder, templateFile))
-	if err != nil {
-		panic(err)
-	}
+	tpl := views.Must(views.Parse(filepath.Join(templateFolder, templateFile)))
 	r.Get(path, staticHandler(tpl, data))
 }
 
-func staticHandler(tpl views.Template, data interface{}) http.HandlerFunc {
+func staticHandler(tpl *views.Template, data interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tpl.Execute(w, data)
 	}
