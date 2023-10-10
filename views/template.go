@@ -29,8 +29,8 @@ func Parse(filepath string) (*Template, error) {
 	return parseInternal(htmlTpl, err, "ParseFiles")
 }
 
-func ParseFS(fs fs.FS, pattern string) (*Template, error) {
-	htmlTpl, err := template.ParseFS(fs, pattern)
+func ParseFS(fs fs.FS, pattern ...string) (*Template, error) {
+	htmlTpl, err := template.ParseFS(fs, pattern...)
 	return parseInternal(htmlTpl, err, "ParseFS")
 }
 
