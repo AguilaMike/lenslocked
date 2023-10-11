@@ -2,11 +2,24 @@ package controllers
 
 import (
 	"html/template"
-
-	"github.com/go-chi/chi/v5"
+	"net/http"
 )
 
-func FAQ(r *chi.Mux) {
+type Static struct {
+	Template Template
+}
+
+func (static Static) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	static.Template.Execute(w, nil)
+}
+
+func StaticHandler(tpl Template, data interface{}) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		tpl.Execute(w, data)
+	}
+}
+
+func FAQ(tpl Template) http.HandlerFunc {
 	questions := []struct {
 		Question string
 		Answer   template.HTML
@@ -29,5 +42,5 @@ func FAQ(r *chi.Mux) {
 		},
 	}
 
-	registerGetControllerWithTemplateFs(r, questions, "/faq", joinPath("layout", "layout.gohtml"), joinPath("pages", "faq.gohtml"))
+	return StaticHandler(tpl, questions)
 }
