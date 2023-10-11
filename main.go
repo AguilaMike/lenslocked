@@ -14,6 +14,7 @@ func main() {
 	controllers.Home(r)
 	controllers.Contact(r)
 	controllers.FAQ(r)
+	controllers.SignUp(r)
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
 	})
