@@ -1,7 +1,17 @@
 package controllers
 
-import "github.com/go-chi/chi/v5"
+import (
+	"github.com/AguilaMike/lenslocked/templates"
+	"github.com/AguilaMike/lenslocked/views"
+	"github.com/go-chi/chi/v5"
+)
 
 func SignUp(r *chi.Mux) {
-	registerGetControllerDefaultFs(r, "/signup", "layout.gohtml", "pages", "auth", "signup.gohtml")
+	var usersC Users
+	usersC.Templates.New = views.Must(
+		views.ParseFS(
+			templates.FS,
+			joinPath("layout", "layout.gohtml"),
+			joinPath("pages", "auth", "signup.gohtml")))
+	r.Get("/signup", usersC.New)
 }
