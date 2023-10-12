@@ -43,6 +43,7 @@ func SignUp(r *chi.Mux) {
 			JoinPath("layout", "layout.gohtml"),
 			JoinPath("pages", "auth", "signup.gohtml")))
 	r.Get("/signup", usersC.New)
+	r.Post("/signup", usersC.Create)
 }
 
 func registerGetControllerDefaultFs(r *chi.Mux, path, layout string, pages ...string) {
