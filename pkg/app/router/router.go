@@ -30,6 +30,7 @@ func Router(r *chi.Mux, userService models.UserService) {
 	))
 
 	SignUp(r, userService)
+	SignIn(r, userService)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
