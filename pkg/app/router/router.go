@@ -60,7 +60,7 @@ func SignIn(r *chi.Mux, userService models.UserService) {
 			JoinPath("layout", "layout.gohtml"),
 			JoinPath("pages", "auth", "signin.gohtml")))
 	r.Get("/signin", usersC.New)
-	// r.Post("/signup", usersC.Create)
+	r.Post("/signin", usersC.ProcessSignIn)
 }
 
 func registerGetControllerDefaultFs(r *chi.Mux, path, layout string, pages ...string) {
