@@ -49,6 +49,19 @@ func SignUp(r *chi.Mux, userService models.UserService) {
 	r.Post("/signup", usersC.Create)
 }
 
+func SignIn(r *chi.Mux, userService models.UserService) {
+	usersC := controllers.Users{
+		UserService: &userService,
+	}
+	usersC.Templates.New = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "signin.gohtml")))
+	r.Get("/signin", usersC.New)
+	// r.Post("/signup", usersC.Create)
+}
+
 func registerGetControllerDefaultFs(r *chi.Mux, path, layout string, pages ...string) {
 	registerGetControllerWithTemplateFs(r, nil, path, JoinPath("layout", layout), JoinPath(pages...))
 }
