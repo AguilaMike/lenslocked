@@ -17,7 +17,8 @@ services:
     environment:
       - PORT_APP=${PORT_APP}
       - PORT_DELVE=${PORT_DELVE}
-
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 networks:
   lenslocked:
     name: lenslocked

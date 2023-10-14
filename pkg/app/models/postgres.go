@@ -22,7 +22,7 @@ func (cfg PostgresConfig) String() string {
 
 func DefaultPostgresConfig() PostgresConfig {
 	return PostgresConfig{
-		Host:     "localhost",
+		Host:     "host.docker.internal",
 		Port:     "5432",
 		User:     "sa",
 		Password: "@dmin1234",

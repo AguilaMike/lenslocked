@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -42,9 +43,10 @@ func (us *UserService) Create(email, password string) (*User, error) {
 		Email:           email,
 		EmailNormalized: strings.ToLower(email),
 		PasswordHash:    passwordHash,
+		CreatedAt:       time.Now().Unix(),
 	}
-	row := us.DB.QueryRow(`INSERT INTO users (id, email, email_normalized, password_hash)
-  		VALUES ($1, $2, $3) RETURNING id`, ID, user.Email, user.EmailNormalized, passwordHash)
+	row := us.DB.QueryRow(`INSERT INTO users (id, email, email_normalized, password_hash, created_at)
+  		VALUES ($1, $2, $3, $4, $5) RETURNING id;`, ID, user.Email, user.EmailNormalized, passwordHash, user.CreatedAt)
 	err = row.Scan(&user.ID)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
@@ -68,5 +70,6 @@ func (us UserService) Authenticate(email, password string) (*User, error) {
 	if err != nil {
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}
+	user.PasswordHash = ""
 	return &user, nil
 }
