@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 
 	"github.com/AguilaMike/lenslocked/pkg/app/controllers"
+	"github.com/AguilaMike/lenslocked/pkg/app/models"
 	"github.com/AguilaMike/lenslocked/pkg/app/templates"
 	"github.com/AguilaMike/lenslocked/pkg/app/views"
 	"github.com/go-chi/chi/v5"
 )
 
-func Router(r *chi.Mux) {
+func Router(r *chi.Mux, userService models.UserService) {
 
 	// Home
 	registerGetControllerDefaultFs(r, "/", "layout.gohtml", "pages", "home.gohtml")
@@ -28,15 +29,17 @@ func Router(r *chi.Mux) {
 		),
 	))
 
-	SignUp(r)
+	SignUp(r, userService)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
 	})
 }
 
-func SignUp(r *chi.Mux) {
-	var usersC controllers.Users
+func SignUp(r *chi.Mux, userService models.UserService) {
+	usersC := controllers.Users{
+		UserService: &userService,
+	}
 	usersC.Templates.New = views.Must(
 		views.ParseFS(
 			templates.FS,

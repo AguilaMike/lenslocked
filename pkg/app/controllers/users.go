@@ -3,12 +3,15 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/AguilaMike/lenslocked/pkg/app/models"
 )
 
 type Users struct {
 	Templates struct {
 		New Template
 	}
+	UserService *models.UserService
 }
 
 func (u Users) New(w http.ResponseWriter, r *http.Request) {
@@ -20,25 +23,19 @@ func (u Users) New(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u Users) Create(w http.ResponseWriter, r *http.Request) {
-	type userForm struct {
-		Email    string `forman:"email"`
-		Password string `forman:"password"`
-	}
 	err := r.ParseForm()
 	if err != nil {
 		http.Error(w, "Unable to parse form submission.", http.StatusBadRequest)
 		return
 	}
-	// // Convert the map to JSON
-	// jsonData, _ := json.Marshal(r.Form)
 
-	// // Convert the JSON to a struct
-	// var user userForm
-	// json.Unmarshal(jsonData, &user)
-
-	fmt.Fprintln(w, r.Form)
-	// fmt.Fprintln(w, user)
-	fmt.Fprintf(w, "<p>Email: %s</p>", r.PostForm.Get("email"))
-	fmt.Fprintf(w, "<p>Password: %s</p>", r.PostForm.Get("password"))
-	fmt.Fprint(w, "Temporary response")
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+	user, err := u.UserService.Create(email, password)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintf(w, "User created: %+v", user)
 }
