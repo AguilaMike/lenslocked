@@ -29,18 +29,19 @@ func Router(r *chi.Mux, userService models.UserService) {
 		),
 	))
 
-	SignUp(r, userService)
-	SignIn(r, userService)
+	usersC := controllers.Users{
+		UserService: &userService,
+	}
+	SignUp(r, usersC)
+	SignIn(r, usersC)
+	r.Get("/users/me", usersC.CurrentUser)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
 	})
 }
 
-func SignUp(r *chi.Mux, userService models.UserService) {
-	usersC := controllers.Users{
-		UserService: &userService,
-	}
+func SignUp(r *chi.Mux, usersC controllers.Users) {
 	usersC.Templates.New = views.Must(
 		views.ParseFS(
 			templates.FS,
@@ -50,10 +51,7 @@ func SignUp(r *chi.Mux, userService models.UserService) {
 	r.Post("/signup", usersC.Create)
 }
 
-func SignIn(r *chi.Mux, userService models.UserService) {
-	usersC := controllers.Users{
-		UserService: &userService,
-	}
+func SignIn(r *chi.Mux, usersC controllers.Users) {
 	usersC.Templates.New = views.Must(
 		views.ParseFS(
 			templates.FS,

@@ -10,12 +10,12 @@ type Static struct {
 }
 
 func (static Static) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	static.Template.Execute(w, nil)
+	static.Template.Execute(w, r, nil)
 }
 
 func StaticHandler(tpl Template, data interface{}) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		tpl.Execute(w, data)
+		tpl.Execute(w, r, data)
 	}
 }
 
