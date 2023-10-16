@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/AguilaMike/lenslocked/pkg/app/migrations"
 	"github.com/AguilaMike/lenslocked/pkg/app/models"
 	"github.com/AguilaMike/lenslocked/pkg/app/router"
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,13 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
+
+	// Add the following code
+	// err = models.Migrate(db, "pkg/app/migrations")
+	err = models.MigrateFS(db, migrations.FS, ".")
+	if err != nil {
+		panic(err)
+	}
 
 	// Setup our model services
 	userService := models.UserService{

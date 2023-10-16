@@ -57,18 +57,13 @@ func (ss *SessionService) Create(userID uuid.UUID) (*Session, error) {
 		CreatedAt: time.Now().Unix(),
 		TokenHash: tokenHash,
 	}
-	row := ss.DB.QueryRow(`UPDATE sessions SET token_hash = $2, updated_at = $3 WHERE user_id = $1 RETURNING id;`, session.UserID, session.TokenHash, session.CreatedAt)
+
+	row := ss.DB.QueryRow(`
+		INSERT INTO sessions (id, user_id, token_hash, created_at)
+		VALUES ($1, $2, $3, $4) ON CONFLICT (user_id) DO
+		UPDATE SET token_hash = $3, updated_at = $4
+		RETURNING id;`, ID, userID, tokenHash, session.CreatedAt)
 	err = row.Scan(&session.ID)
-	if err == sql.ErrNoRows {
-		// If no session exists, we will get ErrNoRows. That means we need to
-		// create a session object for that user.
-		row = ss.DB.QueryRow(`INSERT INTO sessions  (id, user_id, token_hash, created_at)
-  			VALUES ($1, $2, $3, $4) RETURNING id;`, ID, session.UserID, session.TokenHash, session.CreatedAt)
-		err = row.Scan(&session.ID)
-	}
-	// If the err was not sql.ErrNoRows, we need to check to see if it was any
-	// other error. If it was sql.ErrNoRows it will be overwritten inside the if
-	// block, and we still need to check for any errors.
 	if err != nil {
 		return nil, fmt.Errorf("create: %w", err)
 	}
@@ -79,11 +74,11 @@ func (ss *SessionService) User(token string) (*User, error) {
 	tokenHash := TokenManager{}.Hash(token)
 	var user User
 	row := ss.DB.QueryRow(`
-		SELECT email, password_hash
+		SELECT users.id, users.email, users.password_hash
 		  FROM users
 	INNER JOIN sessions ON sessions.user_id = users.id
 		 WHERE sessions.token_hash = $1;`, tokenHash)
-	err := row.Scan(&user.Email, &user.PasswordHash)
+	err := row.Scan(&user.ID, &user.Email, &user.PasswordHash)
 	if err != nil {
 		return nil, fmt.Errorf("user: %w", err)
 	}

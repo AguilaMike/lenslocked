@@ -3,7 +3,13 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"io/fs"
+	"net/http"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/httpfs"
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
@@ -41,4 +47,46 @@ func Open(config PostgresConfig) (*sql.DB, error) {
 		return nil, fmt.Errorf("open: %w", err)
 	}
 	return db, nil
+}
+
+func Migrate(db *sql.DB, dir string) error {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	m, err := migrate.NewWithDatabaseInstance(
+		"file://"+dir,
+		"lenslocked", driver)
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	err = m.Up()
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	return nil
+}
+
+func MigrateFS(db *sql.DB, migrationsFS fs.FS, dir string) error {
+	// In case the dir is an empty string, they probably meant the current directory and goose wants a period for that.
+	if dir == "" {
+		dir = "."
+	}
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	source, err := httpfs.New(http.FS(migrationsFS), dir)
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	m, err := migrate.NewWithInstance("httpfs", source, "lenslocked", driver)
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	err = m.Up()
+	if err != nil {
+		return fmt.Errorf("migrate: %w", err)
+	}
+	return nil
 }
