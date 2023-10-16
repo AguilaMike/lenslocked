@@ -40,6 +40,12 @@ func Router(r *chi.Mux, userService models.UserService, sessionService models.Se
 	}
 	SignUp(r, usersC)
 	SignIn(r, usersC)
+
+	usersC.Templates.UserMe = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "userme.gohtml")))
 	r.Get("/users/me", LogMiddleware(usersC.CurrentUser))
 	r.Post("/signout", usersC.ProcessSignOut)
 

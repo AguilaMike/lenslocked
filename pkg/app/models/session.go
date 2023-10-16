@@ -41,13 +41,10 @@ type SessionService struct {
 // will be returned as the Token field on the Session type, but only the hashed
 // session token is stored in the database.
 func (ss *SessionService) Create(userID uuid.UUID) (*Session, error) {
-	bytesPerToken := ss.BytesPerToken
-	if bytesPerToken < MinBytesPerToken {
-		bytesPerToken = MinBytesPerToken
-	}
-	token, err := rand.String(bytesPerToken)
+	tokenService := TokenManager{}
+	token, tokenHash, err := tokenService.New()
 	if err != nil {
-		return nil, fmt.Errorf("create: %w", err)
+		return nil, fmt.Errorf("%s %w", "error creating token", err)
 	}
 	ID, err := uuid.NewUUID()
 	if err != nil {
@@ -58,7 +55,7 @@ func (ss *SessionService) Create(userID uuid.UUID) (*Session, error) {
 		UserID:    userID,
 		Token:     token,
 		CreatedAt: time.Now().Unix(),
-		TokenHash: ss.hash(token),
+		TokenHash: tokenHash,
 	}
 	row := ss.DB.QueryRow(`UPDATE sessions SET token_hash = $2, updated_at = $3 WHERE user_id = $1 RETURNING id;`, session.UserID, session.TokenHash, session.CreatedAt)
 	err = row.Scan(&session.ID)
@@ -79,15 +76,14 @@ func (ss *SessionService) Create(userID uuid.UUID) (*Session, error) {
 }
 
 func (ss *SessionService) User(token string) (*User, error) {
-	tokenHash := ss.hash(token)
+	tokenHash := TokenManager{}.Hash(token)
 	var user User
-	row := ss.DB.QueryRow(`SELECT user_id FROM sessions WHERE token_hash = $1;`, tokenHash)
-	err := row.Scan(&user.ID)
-	if err != nil {
-		return nil, fmt.Errorf("user: %w", err)
-	}
-	row = ss.DB.QueryRow(`SELECT email, password_hash FROM users WHERE id = $1;`, user.ID)
-	err = row.Scan(&user.Email, &user.PasswordHash)
+	row := ss.DB.QueryRow(`
+		SELECT email, password_hash
+		  FROM users
+	INNER JOIN sessions ON sessions.user_id = users.id
+		 WHERE sessions.token_hash = $1;`, tokenHash)
+	err := row.Scan(&user.Email, &user.PasswordHash)
 	if err != nil {
 		return nil, fmt.Errorf("user: %w", err)
 	}
@@ -95,7 +91,7 @@ func (ss *SessionService) User(token string) (*User, error) {
 }
 
 func (ss *SessionService) Delete(token string) error {
-	tokenHash := ss.hash(token)
+	tokenHash := TokenManager{}.Hash(token)
 	_, err := ss.DB.Exec(`DELETE FROM sessions WHERE token_hash = $1;`, tokenHash)
 	if err != nil {
 		return fmt.Errorf("delete: %w", err)
@@ -103,7 +99,32 @@ func (ss *SessionService) Delete(token string) error {
 	return nil
 }
 
-func (ss *SessionService) hash(token string) string {
+type TokenManager struct {
+	// BytesPerToken is used to determine how many bytes to use when generating
+	// each session token. If this value is not set or is less than the
+	// MinBytesPerToken const it will be ignored and MinBytesPerToken will be
+	// used.
+	BytesPerToken int
+}
+
+func (tm TokenManager) New() (string, string, error) {
+	bytesPerToken := tm.BytesPerToken
+	if bytesPerToken < MinBytesPerToken {
+		bytesPerToken = MinBytesPerToken
+	}
+	token, err := rand.String(bytesPerToken)
+	if err != nil {
+		return "", "", fmt.Errorf("create: %w", err)
+	}
+	tokenHash := tm.getHash(token)
+	return token, tokenHash, nil
+}
+
+func (tm TokenManager) Hash(token string) string {
+	return tm.getHash(token)
+}
+
+func (tm TokenManager) getHash(token string) string {
 	tokenHash := sha256.Sum256([]byte(token))
 	// base64 encode the data into a string
 	return base64.URLEncoding.EncodeToString(tokenHash[:])

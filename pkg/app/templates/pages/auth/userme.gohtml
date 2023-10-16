@@ -1,0 +1,17 @@
+{{define "page"}}
+<div class="py-12 flex justify-center">
+    <div class="px-8 py-8 bg-white rounded shadow">
+        <h1 class="pt-4 pb-8 text-center text-3xl font-bold text-gray-900">
+            Welcome!
+        </h1>
+        <div class="py-2">
+            <label class="text-sm font-semibold text-gray-800">
+                Email Address
+            </label>
+            <p class="text-sm font-semibold text-gray-500">
+                {{.Email}}
+            </p>
+        </div>
+    </div>
+</div>
+{{end}}

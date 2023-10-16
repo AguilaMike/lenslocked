@@ -11,6 +11,7 @@ type Users struct {
 	Templates struct {
 		New    Template
 		SignIn Template
+		UserMe Template
 	}
 	UserService    *models.UserService
 	SessionService *models.SessionService
@@ -96,7 +97,7 @@ func (u Users) CurrentUser(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/signin", http.StatusFound)
 		return
 	}
-	fmt.Fprintf(w, "Current user: %s\n", user.Email)
+	u.Templates.UserMe.Execute(w, r, user)
 }
 
 func (u Users) ProcessSignOut(w http.ResponseWriter, r *http.Request) {
