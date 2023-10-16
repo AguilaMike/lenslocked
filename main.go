@@ -24,8 +24,12 @@ func main() {
 		DB: db,
 	}
 
+	sessionService := models.SessionService{
+		DB: db,
+	}
+
 	r := chi.NewRouter()
-	router.Router(r, userService)
+	router.Router(r, userService, sessionService)
 
 	csrfKey := "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
 	csrfMw := csrf.Protect(

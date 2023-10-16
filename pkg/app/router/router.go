@@ -17,7 +17,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Router(r *chi.Mux, userService models.UserService) {
+func Router(r *chi.Mux, userService models.UserService, sessionService models.SessionService) {
 
 	// Home
 	registerGetControllerDefaultFs(r, "/", "layout.gohtml", "pages", "home.gohtml")
@@ -35,11 +35,13 @@ func Router(r *chi.Mux, userService models.UserService) {
 	)))
 
 	usersC := controllers.Users{
-		UserService: &userService,
+		UserService:    &userService,
+		SessionService: &sessionService,
 	}
 	SignUp(r, usersC)
 	SignIn(r, usersC)
 	r.Get("/users/me", LogMiddleware(usersC.CurrentUser))
+	r.Post("/signout", usersC.ProcessSignOut)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
