@@ -61,7 +61,7 @@ func Migrate(db *sql.DB, dir string) error {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	err = m.Up()
-	if err != nil {
+	if err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	return nil
@@ -85,7 +85,7 @@ func MigrateFS(db *sql.DB, migrationsFS fs.FS, dir string) error {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	err = m.Up()
-	if err != nil {
+	if err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	return nil

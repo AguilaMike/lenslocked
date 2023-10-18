@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/AguilaMike/lenslocked/pkg/app/context"
+	"github.com/AguilaMike/lenslocked/pkg/app/models"
 	"github.com/gorilla/csrf"
 )
 
@@ -26,6 +28,9 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 	}
 	tpl = tpl.Funcs(
 		template.FuncMap{
+			"currentUser": func() *models.User {
+				return context.User(r.Context())
+			},
 			"csrfField": func() template.HTML {
 				return csrf.TemplateField(r)
 			},
@@ -43,15 +48,13 @@ func (t Template) Execute(w http.ResponseWriter, r *http.Request, data interface
 	io.Copy(w, &buf)
 }
 
-func Parse(filepath string) (Template, error) {
-	htmlTpl, err := template.ParseFiles(filepath)
-	return parseInternal(htmlTpl, err, "ParseFiles")
-}
-
 func ParseFS(fs fs.FS, pattern ...string) (Template, error) {
 	htmlTpl := template.New(path.Base(pattern[0]))
 	htmlTpl = htmlTpl.Funcs(
 		template.FuncMap{
+			"currentUser": func() (*models.User, error) {
+				return nil, fmt.Errorf("currentUser not implemented")
+			},
 			"csrfField": func() (template.HTML, error) {
 				return "", fmt.Errorf("csrfField not implemented")
 			},
