@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -15,12 +17,43 @@ import (
 	"github.com/AguilaMike/lenslocked/pkg/app/router"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/csrf"
+	"github.com/joho/godotenv"
 )
 
+func loadEnvConfig() (router.Config, error) {
+	var cfg router.Config
+	err := godotenv.Load()
+	if err != nil {
+		return cfg, err
+	}
+	cfg.PSQL = models.DefaultPostgresConfig()
+
+	// TODO: SMTP
+	cfg.SMTP.Host = os.Getenv("SMTP_HOST")
+	portStr := os.Getenv("SMTP_PORT")
+	cfg.SMTP.Port, err = strconv.Atoi(portStr)
+	if err != nil {
+		return cfg, err
+	}
+	cfg.SMTP.Username = os.Getenv("SMTP_USER")
+	cfg.SMTP.Password = os.Getenv("SMTP_PASS")
+
+	cfg.CSRF.Key = os.Getenv("CSRF_KEY")
+	cfg.CSRF.Secure = os.Getenv("CSRF_SECURE") == "1"
+
+	cfg.Server.Address = ":" + os.Getenv("PORT_GO")
+
+	return cfg, nil
+}
+
 func main() {
+	cfg, err := loadEnvConfig()
+	if err != nil {
+		panic(err)
+	}
+
 	// Setup a database connection
-	cfg := models.DefaultPostgresConfig()
-	db, err := models.Open(cfg)
+	db, err := models.Open(cfg.PSQL)
 	if err != nil {
 		panic(err)
 	}
@@ -34,33 +67,30 @@ func main() {
 	}
 
 	// Setup our model services
-	userService := models.UserService{
-		DB: db,
-	}
-
-	sessionService := models.SessionService{
+	sessionService := &models.SessionService{
 		DB: db,
 	}
 
 	// Setup our router
 	r := chi.NewRouter()
-	csrfKey := "gFvi45R4fy5xNBlnEeZtQbfAVCYEIAUX"
 	csrfMw := csrf.Protect(
-		[]byte(csrfKey),
-		// TODO: Fix this before deploying
-		csrf.Secure(false),
+		[]byte(cfg.CSRF.Key),
+		csrf.Secure(cfg.CSRF.Secure),
 	)
 	// These middleware are used everywhere.
 	r.Use(csrfMw)
 	umw := controllers.UserMiddleware{
-		SessionService: &sessionService,
+		SessionService: sessionService,
 	}
 	r.Use(umw.SetUser)
 	r.Use(LogMiddleware)
 
-	router.Router(r, umw, userService, sessionService)
-	fmt.Println("Starting the server on :8080...")
-	fmt.Println(http.ListenAndServe(":8080", r))
+	router.Router(r, umw, cfg, db, sessionService)
+	fmt.Printf("Starting the server on :%s...", cfg.Server.Address)
+	err = http.ListenAndServe(cfg.Server.Address, r)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func LogMiddleware(next http.Handler) http.Handler {

@@ -1,6 +1,7 @@
 package router
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -12,7 +13,19 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func Router(r *chi.Mux, umw controllers.UserMiddleware, userService models.UserService, sessionService models.SessionService) {
+type Config struct {
+	PSQL models.PostgresConfig
+	SMTP models.SMTPConfig
+	CSRF struct {
+		Key    string
+		Secure bool
+	}
+	Server struct {
+		Address string
+	}
+}
+
+func Router(r *chi.Mux, umw controllers.UserMiddleware, cfg Config, db *sql.DB, sessionService *models.SessionService) {
 
 	// Home
 	registerGetControllerDefaultFs(r, "/", "layout.gohtml", "pages", "home.gohtml")
@@ -29,12 +42,25 @@ func Router(r *chi.Mux, umw controllers.UserMiddleware, userService models.UserS
 		),
 	))
 
+	// Setup our model services
+	userService := &models.UserService{
+		DB: db,
+	}
+	pwResetService := &models.PasswordResetService{
+		DB: db,
+	}
+	emailService := models.NewEmailService(cfg.SMTP)
+	emailService.DefaultSender = cfg.SMTP.Username
+
 	usersC := controllers.Users{
-		UserService:    &userService,
-		SessionService: &sessionService,
+		UserService:          userService,
+		SessionService:       sessionService,
+		PasswordResetService: pwResetService,
+		EmailService:         emailService,
 	}
 	SignUp(r, usersC)
 	SignIn(r, usersC)
+	ForgotPassword(r, usersC)
 	UsersViews(r, umw, usersC)
 	r.Post("/signout", usersC.ProcessSignOut)
 
@@ -61,6 +87,29 @@ func SignIn(r *chi.Mux, usersC controllers.Users) {
 			JoinPath("pages", "auth", "signin.gohtml")))
 	r.Get("/signin", usersC.New)
 	r.Post("/signin", usersC.ProcessSignIn)
+}
+
+func ForgotPassword(r *chi.Mux, usersC controllers.Users) {
+	usersC.Templates.ForgotPassword = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "forgot-pw.gohtml")))
+	usersC.Templates.CheckYourEmail = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "check-your-email.gohtml")))
+	r.Get("/forgot-pw", usersC.ForgotPassword)
+	r.Post("/forgot-pw", usersC.ProcessForgotPassword)
+
+	usersC.Templates.ResetPassword = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "reset-pw.gohtml")))
+	r.Get("/reset-pw", usersC.ResetPassword)
+	r.Post("/reset-pw", usersC.ProcessResetPassword)
 }
 
 func UsersViews(r *chi.Mux, umw controllers.UserMiddleware, usersC controllers.Users) {
