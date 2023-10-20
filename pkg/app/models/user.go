@@ -7,8 +7,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AguilaMike/lenslocked/pkg/app/errors"
 	"github.com/google/uuid"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"golang.org/x/crypto/bcrypt"
+)
+
+var (
+	ErrEmailTaken    = "That email address is already associated with an account."
+	ErrUserNotFound  = "We were unable to find a user with that email address."
+	ErrPasswordError = "That password is incorrect."
 )
 
 type User struct {
@@ -49,6 +58,16 @@ func (us *UserService) Create(email, password string) (*User, error) {
   		VALUES ($1, $2, $3, $4, $5) RETURNING id;`, ID, user.Email, user.EmailNormalized, passwordHash, user.CreatedAt)
 	err = row.Scan(&user.ID)
 	if err != nil {
+		// See if we can use this error as a PgError
+		var pgError *pgconn.PgError
+		if errors.As(err, &pgError) {
+			// This is a PgError, so see if it matches a unique violation.
+			if pgError.Code == pgerrcode.UniqueViolation {
+				// If this is true, it has to be an email violation since this is the
+				// only way to trigger this type of violation with our SQL.
+				err = errors.Public(err, ErrEmailTaken)
+			}
+		}
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 	return &user, nil
@@ -64,11 +83,14 @@ func (us UserService) Authenticate(email, password string) (*User, error) {
 		FROM users WHERE email=$1`, email)
 	err := row.Scan(&user.ID, &user.PasswordHash)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			err = errors.Public(err, ErrUserNotFound)
+		}
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return nil, fmt.Errorf("authenticate: %w", err)
+		return nil, fmt.Errorf("authenticate: %w", errors.Public(err, ErrPasswordError))
 	}
 	user.PasswordHash = ""
 	return &user, nil

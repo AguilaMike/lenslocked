@@ -38,13 +38,16 @@ func (u Users) Create(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to parse form submission.", http.StatusBadRequest)
 		return
 	}
-
-	email := r.FormValue("email")
-	password := r.FormValue("password")
-	user, err := u.UserService.Create(email, password)
+	var data struct {
+		Email    string
+		Password string
+	}
+	data.Email = r.FormValue("email")
+	data.Password = r.FormValue("password")
+	user, err := u.UserService.Create(data.Email, data.Password)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		u.Templates.New.Execute(w, r, data, err)
 		return
 	}
 	session, err := u.SessionService.Create(user.ID)
@@ -77,14 +80,18 @@ func (u Users) ProcessSignIn(w http.ResponseWriter, r *http.Request) {
 	user, err := u.UserService.Authenticate(data.Email, data.Password)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		data.Password = ""
+		u.Templates.SignIn.Execute(w, r, data, err)
+		// http.Error(w, "Something went wrong.", http.StatusInternalServerError)
 		return
 	}
 
 	session, err := u.SessionService.Create(user.ID)
 	if err != nil {
 		fmt.Println(err)
-		http.Error(w, "Something went wrong.", http.StatusInternalServerError)
+		data.Password = ""
+		u.Templates.SignIn.Execute(w, r, data, err)
+		// http.Error(w, "Something went wrong.", http.StatusInternalServerError)
 		return
 	}
 	SetCookie(w, CookieSession, session.Token)

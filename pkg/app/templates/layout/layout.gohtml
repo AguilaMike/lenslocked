@@ -33,6 +33,22 @@
         </div>
       </nav>
     </header>
+    {{if errors}}
+      <div class="py-4 px-2">
+        {{range errors}}
+          <div class="closeable flex bg-red-100 rounded px-2 py-2 text-red-800 mb-2">
+            <div class="flex-grow">
+              {{.}}
+            </div>
+            <a href="#" onclick="closeAlert(event)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </a>
+          </div>
+        {{end}}
+      </div>
+    {{end}}
     <!-- Note: The . passes all of our data into the "page" template so it also has access to it -->
     {{template "page" .}}
     <footer class="fixed bottom-0 left-0 z-20 w-full p-4 bg-white border-t border-gray-200 shadow md:flex md:items-center md:justify-between md:p-2 dark:bg-gray-800 dark:border-gray-600">
@@ -40,5 +56,12 @@
         <span class="block text-sm text-gray-500 sm:text-center dark:text-gray-400">© 2023 <a href="/" class="hover:underline">Lenslocked</a>. All Rights Reserved.</span>
       </div>
     </footer>
+    <script>
+      function closeAlert(event) {
+        let closeable = event.target.closest(".closeable");
+        closeable.remove();
+        // closeable.classList.add("hidden");
+      }
+    </script>
   </body>
 </html>

@@ -5,5 +5,5 @@ import (
 )
 
 type Template interface {
-	Execute(w http.ResponseWriter, r *http.Request, data interface{})
+	Execute(w http.ResponseWriter, r *http.Request, data interface{}, errs ...error)
 }

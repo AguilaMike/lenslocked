@@ -27,6 +27,53 @@ type Config struct {
 
 func Router(r *chi.Mux, umw controllers.UserMiddleware, cfg Config, db *sql.DB, sessionService *models.SessionService) {
 
+	// Setup our model services
+	userService := &models.UserService{
+		DB: db,
+	}
+	pwResetService := &models.PasswordResetService{
+		DB: db,
+	}
+	emailService := models.NewEmailService(cfg.SMTP)
+	emailService.DefaultSender = cfg.SMTP.Username
+	usersC := controllers.Users{
+		UserService:          userService,
+		SessionService:       sessionService,
+		PasswordResetService: pwResetService,
+		EmailService:         emailService,
+	}
+
+	usersC.Templates.New = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "signup.gohtml")))
+	usersC.Templates.SignIn = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "signin.gohtml")))
+	usersC.Templates.ForgotPassword = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "forgot-pw.gohtml")))
+	usersC.Templates.CheckYourEmail = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "check-your-email.gohtml")))
+	usersC.Templates.ResetPassword = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "reset-pw.gohtml")))
+	usersC.Templates.UserMe = views.Must(
+		views.ParseFS(
+			templates.FS,
+			JoinPath("layout", "layout.gohtml"),
+			JoinPath("pages", "auth", "userme.gohtml")))
+
 	// Home
 	registerGetControllerDefaultFs(r, "/", "layout.gohtml", "pages", "home.gohtml")
 	// Contact
@@ -42,85 +89,28 @@ func Router(r *chi.Mux, umw controllers.UserMiddleware, cfg Config, db *sql.DB, 
 		),
 	))
 
-	// Setup our model services
-	userService := &models.UserService{
-		DB: db,
-	}
-	pwResetService := &models.PasswordResetService{
-		DB: db,
-	}
-	emailService := models.NewEmailService(cfg.SMTP)
-	emailService.DefaultSender = cfg.SMTP.Username
+	// signup
+	r.Get("/signup", usersC.New)
+	r.Post("/signup", usersC.Create)
+	// signin
+	r.Get("/signin", usersC.SignIn)
+	r.Post("/signin", usersC.ProcessSignIn)
+	// forgot-pw
+	r.Get("/forgot-pw", usersC.ForgotPassword)
+	r.Post("/forgot-pw", usersC.ProcessForgotPassword)
+	// reset-pw
+	r.Get("/reset-pw", usersC.ResetPassword)
+	r.Post("/reset-pw", usersC.ProcessResetPassword)
+	// users
+	r.Route("/users", func(r chi.Router) {
+		r.Use(umw.RequireUser)
+		r.Get("/me", usersC.CurrentUser)
+	})
 
-	usersC := controllers.Users{
-		UserService:          userService,
-		SessionService:       sessionService,
-		PasswordResetService: pwResetService,
-		EmailService:         emailService,
-	}
-	SignUp(r, usersC)
-	SignIn(r, usersC)
-	ForgotPassword(r, usersC)
-	UsersViews(r, umw, usersC)
 	r.Post("/signout", usersC.ProcessSignOut)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)
-	})
-}
-
-func SignUp(r *chi.Mux, usersC controllers.Users) {
-	usersC.Templates.New = views.Must(
-		views.ParseFS(
-			templates.FS,
-			JoinPath("layout", "layout.gohtml"),
-			JoinPath("pages", "auth", "signup.gohtml")))
-	r.Get("/signup", usersC.New)
-	r.Post("/signup", usersC.Create)
-}
-
-func SignIn(r *chi.Mux, usersC controllers.Users) {
-	usersC.Templates.New = views.Must(
-		views.ParseFS(
-			templates.FS,
-			JoinPath("layout", "layout.gohtml"),
-			JoinPath("pages", "auth", "signin.gohtml")))
-	r.Get("/signin", usersC.New)
-	r.Post("/signin", usersC.ProcessSignIn)
-}
-
-func ForgotPassword(r *chi.Mux, usersC controllers.Users) {
-	usersC.Templates.ForgotPassword = views.Must(
-		views.ParseFS(
-			templates.FS,
-			JoinPath("layout", "layout.gohtml"),
-			JoinPath("pages", "auth", "forgot-pw.gohtml")))
-	usersC.Templates.CheckYourEmail = views.Must(
-		views.ParseFS(
-			templates.FS,
-			JoinPath("layout", "layout.gohtml"),
-			JoinPath("pages", "auth", "check-your-email.gohtml")))
-	r.Get("/forgot-pw", usersC.ForgotPassword)
-	r.Post("/forgot-pw", usersC.ProcessForgotPassword)
-
-	usersC.Templates.ResetPassword = views.Must(
-		views.ParseFS(
-			templates.FS,
-			JoinPath("layout", "layout.gohtml"),
-			JoinPath("pages", "auth", "reset-pw.gohtml")))
-	r.Get("/reset-pw", usersC.ResetPassword)
-	r.Post("/reset-pw", usersC.ProcessResetPassword)
-}
-
-func UsersViews(r *chi.Mux, umw controllers.UserMiddleware, usersC controllers.Users) {
-	usersC.Templates.UserMe = views.Must(
-		views.ParseFS(
-			templates.FS,
-			JoinPath("layout", "layout.gohtml"),
-			JoinPath("pages", "auth", "userme.gohtml")))
-	r.Route("/users", func(r chi.Router) {
-		r.Use(umw.RequireUser)
-		r.Get("/me", usersC.CurrentUser)
 	})
 }
 
