@@ -76,6 +76,7 @@ func main() {
 	csrfMw := csrf.Protect(
 		[]byte(cfg.CSRF.Key),
 		csrf.Secure(cfg.CSRF.Secure),
+		csrf.Path("/"),
 	)
 	// These middleware are used everywhere.
 	r.Use(csrfMw)

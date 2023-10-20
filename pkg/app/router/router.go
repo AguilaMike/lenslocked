@@ -43,6 +43,10 @@ func Router(r *chi.Mux, umw controllers.UserMiddleware, cfg Config, db *sql.DB, 
 		EmailService:         emailService,
 	}
 
+	galleryService := &models.GalleryService{
+		DB: db,
+	}
+
 	usersC.Templates.New = views.Must(
 		views.ParseFS(
 			templates.FS,
@@ -108,6 +112,46 @@ func Router(r *chi.Mux, umw controllers.UserMiddleware, cfg Config, db *sql.DB, 
 	})
 
 	r.Post("/signout", usersC.ProcessSignOut)
+
+	// Add this where the other controllers are created
+	galleriesC := controllers.Galleries{
+		GalleryService: galleryService,
+	}
+
+	galleriesC.Templates.Show = views.Must(views.ParseFS(
+		templates.FS,
+		JoinPath("layout", "layout.gohtml"),
+		JoinPath("pages", "galleries", "show.gohtml"),
+	))
+	galleriesC.Templates.Index = views.Must(views.ParseFS(
+		templates.FS,
+		JoinPath("layout", "layout.gohtml"),
+		JoinPath("pages", "galleries", "index.gohtml"),
+	))
+	galleriesC.Templates.New = views.Must(views.ParseFS(
+		templates.FS,
+		JoinPath("layout", "layout.gohtml"),
+		JoinPath("pages", "galleries", "new.gohtml"),
+	))
+	galleriesC.Templates.Edit = views.Must(views.ParseFS(
+		templates.FS,
+		JoinPath("layout", "layout.gohtml"),
+		JoinPath("pages", "galleries", "edit.gohtml"),
+	))
+
+	// galleries
+	r.Route("/galleries", func(r chi.Router) {
+		r.Get("/{id}", galleriesC.Show)
+		r.Group(func(r chi.Router) {
+			r.Use(umw.RequireUser)
+			r.Get("/", galleriesC.Index)
+			r.Get("/new", galleriesC.New)
+			r.Post("/", galleriesC.Create)
+			r.Get("/{id}/edit", galleriesC.Edit)
+			r.Post("/{id}", galleriesC.Update)
+			r.Post("/{id}/delete", galleriesC.Delete)
+		})
+	})
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("404 Not Found: %s", r.URL.Path), http.StatusNotFound)

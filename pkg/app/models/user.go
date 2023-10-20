@@ -14,12 +14,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var (
-	ErrEmailTaken    = "That email address is already associated with an account."
-	ErrUserNotFound  = "We were unable to find a user with that email address."
-	ErrPasswordError = "That password is incorrect."
-)
-
 type User struct {
 	ID              uuid.UUID       `json:"id"`
 	Email           string          `json:"email"`
@@ -65,7 +59,7 @@ func (us *UserService) Create(email, password string) (*User, error) {
 			if pgError.Code == pgerrcode.UniqueViolation {
 				// If this is true, it has to be an email violation since this is the
 				// only way to trigger this type of violation with our SQL.
-				err = errors.Public(err, ErrEmailTaken)
+				err = ErrEmailTaken
 			}
 		}
 		return nil, fmt.Errorf("create user: %w", err)
@@ -84,13 +78,13 @@ func (us UserService) Authenticate(email, password string) (*User, error) {
 	err := row.Scan(&user.ID, &user.PasswordHash)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			err = errors.Public(err, ErrUserNotFound)
+			err = ErrUserNotFound
 		}
 		return nil, fmt.Errorf("authenticate: %w", err)
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
 	if err != nil {
-		return nil, fmt.Errorf("authenticate: %w", errors.Public(err, ErrPasswordError))
+		return nil, fmt.Errorf("authenticate: %w", ErrPasswordError)
 	}
 	user.PasswordHash = ""
 	return &user, nil

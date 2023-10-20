@@ -7,6 +7,7 @@ import "errors"
 // wrap them in custom functionality as needed if we want,
 // or mock them during testing.
 var (
-	As = errors.As
-	Is = errors.Is
+	As  = errors.As
+	Is  = errors.Is
+	New = errors.New
 )
