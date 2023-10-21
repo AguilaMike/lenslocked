@@ -47,3 +47,6 @@ go.work
 
 *.env
 tmp/*
+
+# Images directory in development
+images/

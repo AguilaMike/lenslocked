@@ -1,15 +1,19 @@
 {{define "page"}}
-<div class="px-8 py-12 w-full">
-  <h1 class="pt-4 pb-8 text-3xl font-bold text-gray-900">
+<div class="px-8 w-full">
+  <h1 class="pt-4 pb-8 text-3xl font-bold text-gray-800">
     {{.Title}}
   </h1>
   <div class="columns-4 gap-4 space-y-4">
+    {{ if .Images }}
     {{range .Images}}
     <div class="h-min w-full">
-      <a href="{{.}}">
-        <img class="w-full" src="{{.}}">
+      <a href="/galleries/{{.GalleryID}}/images/{{.FilenameEscaped}}">
+        <img class="w-full" src="/galleries/{{.GalleryID}}/images/{{.FilenameEscaped}}">
       </a>
     </div>
+    {{end}}
+    {{else}}
+    <div pt-4 pb-8 text-2xl font-bold text-gray-500>No data found.</div>
     {{end}}
   </div>
 </div>
