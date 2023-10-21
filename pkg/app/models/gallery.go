@@ -15,13 +15,14 @@ type Gallery struct {
 	Title     string    `json:"title"`
 	CreatedAt int64     `json:"created_at"`
 	UpdatedAt *int64    `json:"updated_at"`
+	Public    bool      `json:"published"`
 }
 
 type GalleryService struct {
 	DB *sql.DB
 }
 
-func (service *GalleryService) Create(title string, userID uuid.UUID) (*Gallery, error) {
+func (service *GalleryService) Create(title string, userID uuid.UUID, public bool) (*Gallery, error) {
 	ID, err := uuid.NewUUID()
 	if err != nil {
 		return nil, fmt.Errorf("%s %w", "error creating uuid", err)
@@ -31,10 +32,11 @@ func (service *GalleryService) Create(title string, userID uuid.UUID) (*Gallery,
 		Title:     title,
 		UserID:    userID,
 		CreatedAt: time.Now().Unix(),
+		Public:    public,
 	}
 	row := service.DB.QueryRow(`
-		INSERT INTO galleries (id, title, user_id, created_at)
-		VALUES ($1, $2, $3, $4) RETURNING id;`, gallery.ID, gallery.Title, gallery.UserID, gallery.CreatedAt)
+		INSERT INTO galleries (id, title, user_id, created_at, published)
+		VALUES ($1, $2, $3, $4, $5) RETURNING id;`, gallery.ID, gallery.Title, gallery.UserID, gallery.CreatedAt, gallery.Public)
 	err = row.Scan(&gallery.ID)
 	if err != nil {
 		return nil, fmt.Errorf("create gallery: %w", err)
@@ -47,10 +49,10 @@ func (service *GalleryService) ByID(id uuid.UUID) (*Gallery, error) {
 		ID: id,
 	}
 	row := service.DB.QueryRow(`
-		SELECT title, user_id, created_at, updated_at
+		SELECT title, user_id, created_at, updated_at, published
 		FROM galleries
 		WHERE id = $1;`, gallery.ID)
-	err := row.Scan(&gallery.Title, &gallery.UserID, &gallery.CreatedAt, &gallery.UpdatedAt)
+	err := row.Scan(&gallery.Title, &gallery.UserID, &gallery.CreatedAt, &gallery.UpdatedAt, &gallery.Public)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
@@ -63,7 +65,7 @@ func (service *GalleryService) ByID(id uuid.UUID) (*Gallery, error) {
 
 func (service *GalleryService) ByUserID(userID uuid.UUID) ([]Gallery, error) {
 	rows, err := service.DB.Query(`
-		SELECT id, title, created_at, updated_at
+		SELECT id, title, created_at, updated_at, published
 		FROM galleries
 		WHERE user_id = $1;`, userID)
 	if err != nil {
@@ -74,7 +76,7 @@ func (service *GalleryService) ByUserID(userID uuid.UUID) ([]Gallery, error) {
 		gallery := Gallery{
 			UserID: userID,
 		}
-		err := rows.Scan(&gallery.ID, &gallery.Title, &gallery.CreatedAt, &gallery.UpdatedAt)
+		err := rows.Scan(&gallery.ID, &gallery.Title, &gallery.CreatedAt, &gallery.UpdatedAt, &gallery.Public)
 		if err != nil {
 			return nil, fmt.Errorf("query galleries by user: %w", err)
 		}
@@ -89,8 +91,8 @@ func (service *GalleryService) ByUserID(userID uuid.UUID) ([]Gallery, error) {
 func (service *GalleryService) Update(gallery *Gallery) error {
 	_, err := service.DB.Exec(`
 		UPDATE galleries
-		SET title = $2, updated_at = $3
-		WHERE id = $1;`, gallery.ID, gallery.Title, time.Now().Unix())
+		SET title = $2, updated_at = $3, published = $4
+		WHERE id = $1;`, gallery.ID, gallery.Title, time.Now().Unix(), gallery.Public)
 	if err != nil {
 		return fmt.Errorf("update gallery: %w", err)
 	}

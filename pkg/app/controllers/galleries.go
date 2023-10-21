@@ -9,6 +9,7 @@ import (
 
 	"github.com/AguilaMike/lenslocked/pkg/app/context"
 	"github.com/AguilaMike/lenslocked/pkg/app/models"
+	"github.com/AguilaMike/lenslocked/pkg/internal/utils"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
@@ -24,11 +25,12 @@ type Galleries struct {
 }
 
 type GalleryDTO struct {
-	ID     uuid.UUID
+	ID     uuid.UUID `form:"id"`
 	UserID uuid.UUID
-	Title  string
-	ID64   string
-	Images []string
+	Title  string   `form:"title"`
+	Public bool     `form:"public"`
+	ID64   string   `form:"id64"`
+	Images []string `form:"images"`
 }
 
 func (g *GalleryDTO) IDEncode() string {
@@ -57,14 +59,16 @@ func (g Galleries) Create(w http.ResponseWriter, r *http.Request) {
 	var data GalleryDTO
 	data.UserID = context.User(r.Context()).ID
 	data.Title = r.FormValue("title")
+	data.Public = utils.ConvertBoolCheckbox(r.FormValue("public"))
 
-	gallery, err := g.GalleryService.Create(data.Title, data.UserID)
+	gallery, err := g.GalleryService.Create(data.Title, data.UserID, data.Public)
 	if err != nil {
 		g.Templates.New.Execute(w, r, data, err)
 		return
 	}
 	data.ID = gallery.ID
-	editPath := fmt.Sprintf("/galleries/%s/edit", data.IDEncode())
+	// editPath := fmt.Sprintf("/galleries/%s/edit", data.IDEncode())
+	editPath := fmt.Sprintf("/galleries")
 	http.Redirect(w, r, editPath, http.StatusFound)
 }
 
@@ -72,6 +76,21 @@ func userMustOwnGallery(w http.ResponseWriter, r *http.Request, data *GalleryDTO
 	data.UserID = context.User(r.Context()).ID
 	if data.UserID != gallery.UserID {
 		http.Error(w, "You are not authorized to edit this gallery", http.StatusForbidden)
+		return fmt.Errorf("user does not have access to this gallery")
+	}
+	return nil
+}
+
+func userMustPrivateGallery(w http.ResponseWriter, r *http.Request, data *GalleryDTO, gallery *models.Gallery) error {
+	user := context.User(r.Context())
+	if user != nil && user.ID != uuid.Nil {
+		data.UserID = context.User(r.Context()).ID
+	} else {
+		data.UserID = uuid.Nil
+	}
+
+	if data.UserID != gallery.UserID && !gallery.Public {
+		http.Error(w, "You are not authorized to see this gallery", http.StatusForbidden)
 		return fmt.Errorf("user does not have access to this gallery")
 	}
 	return nil
@@ -110,6 +129,7 @@ func (g Galleries) Edit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data.Title = gallery.Title
+	data.Public = gallery.Public
 	g.Templates.Edit.Execute(w, r, data)
 }
 
@@ -120,14 +140,22 @@ func (g Galleries) Update(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	r.ParseForm()
 	data.Title = r.FormValue("title")
+	data.Public = utils.ConvertBoolCheckbox(r.FormValue("public"))
+	if err != nil {
+		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		return
+	}
 	gallery.Title = data.Title
+	gallery.Public = data.Public
 	err = g.GalleryService.Update(gallery)
 	if err != nil {
 		http.Error(w, "Something went wrong", http.StatusInternalServerError)
 		return
 	}
-	editPath := fmt.Sprintf("/galleries/%s/edit", data.IDEncode())
+	// editPath := fmt.Sprintf("/galleries/%s/edit", data.IDEncode())
+	editPath := fmt.Sprintf("/galleries")
 	http.Redirect(w, r, editPath, http.StatusFound)
 }
 
@@ -148,6 +176,7 @@ func (g Galleries) Index(w http.ResponseWriter, r *http.Request) {
 			ID:     gallery.ID,
 			UserID: user,
 			Title:  gallery.Title,
+			Public: gallery.Public,
 		}
 		item.IDEncode()
 		data.Galleries = append(data.Galleries, item)
@@ -159,7 +188,7 @@ func (g Galleries) Index(w http.ResponseWriter, r *http.Request) {
 func (g Galleries) Show(w http.ResponseWriter, r *http.Request) {
 	var data GalleryDTO
 	_, err := data.IDDecodeFromBase64String(chi.URLParam(r, "id"))
-	gallery, ok := g.validate(w, r, &data, err)
+	gallery, ok := g.validate(w, r, &data, err, userMustPrivateGallery)
 	if !ok {
 		return
 	}
