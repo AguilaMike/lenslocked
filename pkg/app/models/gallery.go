@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AguilaMike/lenslocked/pkg/app/errors"
 	"github.com/google/uuid"
 )
 
@@ -115,6 +115,10 @@ func (service *GalleryService) Delete(id uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("delete gallery by id: %w", err)
 	}
+	err = os.RemoveAll(service.galleryDir(id))
+	if err != nil {
+		return fmt.Errorf("delete gallery images: %w", err)
+	}
 	return nil
 }
 
@@ -182,9 +186,21 @@ func (service *GalleryService) extensions() []string {
 	return []string{".png", ".jpg", ".jpeg", ".gif"}
 }
 
-func (service *GalleryService) CreateImage(galleryID uuid.UUID, filename string, contents io.Reader) error {
+func (service *GalleryService) imageContentTypes() []string {
+	return []string{"image/png", "image/jpeg", "image/gif"}
+}
+
+func (service *GalleryService) CreateImage(galleryID uuid.UUID, filename string, contents io.ReadSeeker) error {
+	err := checkContentType(contents, service.imageContentTypes())
+	if err != nil {
+		return fmt.Errorf("creating image %v: %w", filename, err)
+	}
+	if !hasExtension(filename, service.extensions()) {
+		return fmt.Errorf("creating image %v: %w", filename, err)
+	}
+
 	galleryDir := service.galleryDir(galleryID)
-	err := os.MkdirAll(galleryDir, 0755)
+	err = os.MkdirAll(galleryDir, 0755)
 	if err != nil {
 		return fmt.Errorf("creating gallery-%s images directory: %w", galleryID.String(), err)
 	}

@@ -261,25 +261,6 @@ func (g Galleries) Image(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid ID", http.StatusNotFound)
 		return
 	}
-	// images, err := g.GalleryService.Images(data.ID)
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	http.Error(w, "Something went wrong", http.StatusInternalServerError)
-	// 	return
-	// }
-	// var requestedImage models.Image
-	// imageFound := false
-	// for _, image := range images {
-	// 	if image.Filename == filename {
-	// 		requestedImage = image
-	// 		imageFound = true
-	// 		break
-	// 	}
-	// }
-	// if !imageFound {
-	// 	http.Error(w, "Image not found", http.StatusNotFound)
-	// 	return
-	// }
 	image, err := g.GalleryService.Image(data.ID, filename)
 	if err != nil {
 		if errors.Is(err, models.ErrNotFound) {
@@ -335,6 +316,13 @@ func (g Galleries) UploadImage(w http.ResponseWriter, r *http.Request) {
 		// io.Copy(w, file)
 		err = g.GalleryService.CreateImage(gallery.ID, fileHeader.Filename, file)
 		if err != nil {
+			var fileErr models.FileError
+			if errors.As(err, &fileErr) {
+				msg := fmt.Sprintf("%v has an invalid content type or extension. Only png, gif, and jpg files can be uploaded.", fileHeader.Filename)
+				http.Error(w, msg, http.StatusBadRequest)
+				return
+			}
+			fmt.Println(err)
 			http.Error(w, "Something went wrong", http.StatusInternalServerError)
 			return
 		}
