@@ -50,3 +50,6 @@ tmp/*
 
 # Images directory in development
 images/
+
+# Node stuff
+node_modules/

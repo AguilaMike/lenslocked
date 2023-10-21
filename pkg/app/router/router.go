@@ -26,6 +26,8 @@ type Config struct {
 }
 
 func Router(r *chi.Mux, umw controllers.UserMiddleware, cfg Config, db *sql.DB, sessionService *models.SessionService) {
+	assetsHandler := http.FileServer(http.Dir("assets"))
+	r.Get("/assets/*", http.StripPrefix("/assets", assetsHandler).ServeHTTP)
 
 	// Setup our model services
 	userService := &models.UserService{

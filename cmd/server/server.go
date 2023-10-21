@@ -27,8 +27,11 @@ func loadEnvConfig() (router.Config, error) {
 		return cfg, err
 	}
 	cfg.PSQL = models.DefaultPostgresConfig()
+	if cfg.PSQL.Host == "" && cfg.PSQL.Port == "" {
+		return cfg, fmt.Errorf("No PSQL Config provided.")
+	}
 
-	// TODO: SMTP
+	// SMTP
 	cfg.SMTP.Host = os.Getenv("SMTP_HOST")
 	portStr := os.Getenv("SMTP_PORT")
 	cfg.SMTP.Port, err = strconv.Atoi(portStr)

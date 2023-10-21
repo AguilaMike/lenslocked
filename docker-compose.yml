@@ -19,6 +19,16 @@ services:
       - PORT_DELVE=${PORT_DELVE}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+  tailwind:
+    build:
+      context: ./tailwind
+      dockerfile: Dockerfile
+    tty: true
+    restart: always
+    volumes:
+      - ./tailwind:/src
+      - ./assets:/dst
+      - ./pkg/app/templates:/templates
 networks:
   lenslocked:
     name: lenslocked
